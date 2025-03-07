@@ -1,0 +1,11 @@
+name: ''
+description: ''
+open_url: ''
+author: ''
+icon: ''
+rules: []
+map_locals: []
+body_rewrites: []
+mitm:
+  hostnames:
+    includes: []
