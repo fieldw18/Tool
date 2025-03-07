@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: pip install pyyaml
       - name: Run conversion script
-        run: python loon_to_egern.py
+        run: python .github/scripts/convert.py
       - name: Commit changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
