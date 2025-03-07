@@ -91,14 +91,12 @@ def parse_loon_file(file_path):
                 hostnames = line.split('=', 1)[1].strip().replace('%APPEND% ', '').split(', ')
                 egern_data['mitm']['hostnames']['includes'] = hostnames
 
-    # 删除空的字段
+    # 删除空的字段，但保留 mitm 结构
     if not egern_data['rules']:
         del egern_data['rules']
     if not egern_data['map_locals']:
         del egern_data['map_locals']
     if not egern_data['mitm']['hostnames']['includes']:
-        del egern_data['mitm']
-    elif not egern_data['mitm']['hostnames']['includes']:
         del egern_data['mitm']['hostnames']['includes']
 
     return egern_data
