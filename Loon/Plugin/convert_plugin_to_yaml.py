@@ -31,9 +31,9 @@ def parse_loon_plugin(file_path):
         
         # 解析元信息
         if line.startswith("#!name="):
-            yaml_data["name"] = line.replace("#!name=", "").strip()
+            yaml_data["name"] = line.replace("#!name=", "")。strip()
         elif line.startswith("#!desc="):
-            yaml_data["description"] = line.replace("#!desc=", "").strip()
+            yaml_data["description"] = line.replace("#!desc=", "")。strip()
         elif line.startswith("#!openUrl="):
             yaml_data["open_url"] = line.replace("#!openUrl=", "").strip()
         elif line.startswith("#!author="):
