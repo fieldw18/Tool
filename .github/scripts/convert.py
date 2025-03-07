@@ -2,112 +2,171 @@ import os
 import re
 import yaml
 
-# Loon 插件目录
-LOON_PLUGIN_DIR = "Loon/Plugin"
-# Egern 模块目录
-EGERN_MODULE_DIR = "Egern/Module"
+# 输入和输出目录
+input_dir = "Loon/Plugin"
+output_dir = "Egern/Module"
 
-# 确保输出目录存在
-os.makedirs(EGERN_MODULE_DIR, exist_ok=True)
+# 创建输出目录
+os.makedirs(output_dir, exist_ok=True)
 
-# 解析 Loon `.plugin` 文件
-def parse_loon_plugin(content):
-    lines = content.split("\n")
-    yaml_data = {
-        "name": "",
-        "description": "",
-        "open_url": "",
-        "author": "",
-        "icon": "",
-        "rules": [],
-        "map_locals": [],
-        "body_rewrites": [],
-        "mitm": {"hostnames": {"includes": []}},
+# 解析 Loon .plugin 文件
+def parse_loon_plugin(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    
+    config = {
+        "metadata": {},
+        "url_rewrites": [],
+        "http_response": [],
+        "scripts": [],
+        "remote_scripts": [],
+        "mitm": {"hostnames": []}
     }
-
-    section = None  # 当前解析的部分
-
+    
+    section = None
     for line in lines:
         line = line.strip()
-        if not line or line.startswith("#"):
-            continue  # 跳过空行和注释
-
-        # 解析插件头部信息
-        if line.startswith("#!name="):
-            yaml_data["name"] = line.split("=", 1)[1].strip()
-        elif line.startswith("#!desc="):
-            yaml_data["description"] = line.split("=", 1)[1].strip()
-        elif line.startswith("#!openUrl="):
-            yaml_data["open_url"] = line.split("=", 1)[1].strip()
-        elif line.startswith("#!author="):
-            yaml_data["author"] = line.split("=", 1)[1].strip()
-        elif line.startswith("#!icon="):
-            yaml_data["icon"] = line.split("=", 1)[1].strip()
-
-        # 解析各个模块部分
-        elif line.startswith("[Rule]"):
-            section = "rules"
-        elif line.startswith("[Map Local]"):
-            section = "map_locals"
-        elif line.startswith("[MITM]"):
+        if not line or line.startswith("#!"):
+            if line.startswith("#!name"):
+                config["metadata"]["name"] = line.split("=", 1)[1].strip()
+            elif line.startswith("#!desc"):
+                config["metadata"]["description"] = line.split("=", 1)[1].strip()
+            elif line.startswith("#!author"):
+                config["metadata"]["author"] = line.split("=", 1)[1].strip()
+            continue
+        
+        if line.startswith("[Rewrite]"):
+            section = "rewrite"
+        elif line.startswith("[MitM]"):
             section = "mitm"
+        elif line.startswith("[Script]"):
+            section = "script"
+        elif line.startswith("[Remote Script]"):
+            section = "remote_script"
+        elif line.startswith("[HTTP Response]"):
+            section = "http_response"
+        elif line:
+            if section == "rewrite":
+                parts = line.split()
+                if len(parts) >= 3:
+                    pattern, status_code, target = parts[0], parts[1], parts[2]
+                    config["url_rewrites"].append({
+                        "match": pattern,
+                        "status_code": int(status_code),
+                        "location": target
+                    })
+            elif section == "mitm" and line.startswith("hostname"):
+                hostname = line.split("=", 1)[1].strip()
+                config["mitm"]["hostnames"] = [h.strip() for h in hostname.split(",")]
+            elif section == "script":
+                parts = line.split()
+                if len(parts) >= 4:
+                    name, type_, pattern, script_path = parts[0], parts[1], parts[2], parts[3]
+                    config["scripts"].append({
+                        "name": name,
+                        "type": type_,
+                        "match": pattern,
+                        "script_path": script_path
+                    })
+            elif section == "remote_script":
+                parts = line.split()
+                if len(parts) >= 4:
+                    name, type_, pattern, url = parts[0], parts[1], parts[2], parts[3]
+                    config["remote_scripts"].append({
+                        "name": name,
+                        "type": type_,
+                        "match": pattern,
+                        "url": url
+                    })
+            elif section == "http_response":
+                # 假设格式为: pattern response-body-json-jq 'filter'
+                parts = re.split(r'\s+', line, 2)
+                if len(parts) == 3 and parts[1] == "response-body-json-jq":
+                    pattern, _, jq_filter = parts
+                    jq_filter = jq_filter.strip("'")
+                    config["http_response"].append({
+                        "match": pattern,
+                        "filter": jq_filter,
+                        "type": "response_jq"
+                    })
+    
+    return config
 
-        # 解析 Rule
-        elif section == "rules":
-            if "DOMAIN," in line:
-                domain = line.split(",")[1].strip()
-                yaml_data["rules"].append({"domain": {"match": domain, "policy": "REJECT"}})
-            elif "AND," in line:
-                parts = re.findall(r"\((.*?)\)", line)
-                and_rule = {"match": [], "policy": "REJECT"}
-                for part in parts:
-                    key, value = part.split(",", 1)
-                    key, value = key.strip(), value.strip()
-                    if key == "IP-ASN":
-                        and_rule["match"].append({"asn": {"match": value, "no_resolve": True}})
-                    elif key == "DEST-PORT":
-                        and_rule["match"].append({"dest_port": {"match": value}})
-                    elif key == "PROTOCOL":
-                        and_rule["match"].append({"protocol": {"match": value}})
-                yaml_data["rules"].append(and_rule)
+# 转换为 Egern .yaml 格式
+def convert_to_egern(config):
+    egern_config = {
+        "name": config["metadata"].get("name", "Converted Module"),
+        "description": config["metadata"].get("description", "Converted from Loon"),
+        "author": config["metadata"].get("author", "Unknown"),
+        "url_rewrites": [],
+        "http_response": [],
+        "scripts": [],
+        "remote_scripts": [],
+        "mitm": {
+            "hostnames": {
+                "includes": config["mitm"]["hostnames"]
+            }
+        }
+    }
+    
+    # 转换 [Rewrite]
+    for rewrite in config["url_rewrites"]:
+        match = rewrite["match"].replace(r"(https:\/\/)?", "^https?:\\/\\/")
+        location = rewrite["location"].replace("$2", "$1")
+        egern_config["url_rewrites"].append({
+            "match": match,
+            "location": location,
+            "status_code": rewrite["status_code"]
+        })
+    
+    # 转换 [HTTP Response]
+    for response in config["http_response"]:
+        egern_config["http_response"].append({
+            "match": response["match"],
+            "filter": response["filter"],
+            "type": response["type"]
+        })
+    
+    # 转换 [Script]
+    for script in config["scripts"]:
+        egern_config["scripts"].append({
+            "name": script["name"],
+            "type": script["type"],
+            "match": script["match"],
+            "script_path": script["script_path"]
+        })
+    
+    # 转换 [Remote Script]
+    for remote_script in config["remote_scripts"]:
+        egern_config["remote_scripts"].append({
+            "name": remote_script["name"],
+            "type": remote_script["type"],
+            "match": remote_script["match"],
+            "url": remote_script["url"]
+        })
+    
+    return egern_config
 
-        # 解析 Map Local
-        elif section == "map_locals":
-            match = re.match(r'^\^(.+?)\s+data-type=text\s+data="(.+?)"\s+status-code=(\d+)', line)
-            if match:
-                yaml_data["map_locals"].append({
-                    "match": match.group(1),
-                    "status_code": int(match.group(3)),
-                    "body": match.group(2),
-                })
+# 主函数
+def main():
+    # 输入文件
+    input_file = os.path.join(input_dir, "turrit.plugin")
+    if not os.path.exists(input_file):
+        print(f"Error: {input_file} not found!")
+        return
+    
+    # 解析 Loon 插件
+    config = parse_loon_plugin(input_file)
+    if not any([config["url_rewrites"], config["http_response"], config["scripts"], config["remote_scripts"], config["mitm"]["hostnames"]]):
+        print("No actionable content found in Loon plugin!")
+        return
+    
+    # 转换为 Egern 格式并保存
+    egern_config = convert_to_egern(config)
+    output_file = os.path.join(output_dir, "turrit.yaml")
+    with open(output_file, "w", encoding="utf-8") as f:
+        yaml.dump(egern_config, f, allow_unicode=True, sort_keys=False)
+    print(f"Converted Loon plugin to Egern module: {output_file}")
 
-        # 解析 MITM
-        elif section == "mitm":
-            if "hostname" in line:
-                hosts = re.findall(r"[\w\.\-\*]+", line)
-                yaml_data["mitm"]["hostnames"]["includes"].extend(hosts)
-
-    return yaml_data
-
-
-# 遍历 Loon 插件目录并转换
-for filename in os.listdir(LOON_PLUGIN_DIR):
-    if filename.endswith(".plugin"):
-        plugin_path = os.path.join(LOON_PLUGIN_DIR, filename)
-        yaml_filename = filename.replace(".plugin", ".yaml")
-        yaml_path = os.path.join(EGERN_MODULE_DIR, yaml_filename)
-
-        # 读取 `.plugin` 文件内容
-        with open(plugin_path, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # 解析并转换
-        yaml_data = parse_loon_plugin(content)
-
-        # 保存为 `.yaml`
-        with open(yaml_path, "w", encoding="utf-8") as f:
-            yaml.dump(yaml_data, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
-
-        print(f"✅ 转换完成: {plugin_path} -> {yaml_path}")
-
-print("🎉 所有插件转换完成！")
+if __name__ == "__main__":
+    main()
