@@ -1,11 +1,11 @@
-author: ''
-body_rewrites: []
+name: ''
 description: ''
+open_url: ''
+author: ''
 icon: ''
+rules: []
 map_locals: []
+body_rewrites: []
 mitm:
   hostnames:
     includes: []
-name: ''
-open_url: ''
-rules: []
