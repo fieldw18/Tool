@@ -1,7 +1,11 @@
-name: Turrit
-description: Telegram外部链接跳转至Turrit
-open_url: https://apps.apple.com/app/id6471781238
-author: sooyaaabo[https://github.com/sooyaaabo]
-icon: https://raw.githubusercontent.com/sooyaaabo/Loon/main/Icon/App-Icon/Turrit.png
+author: ''
+body_rewrites: []
+description: ''
+icon: ''
+map_locals: []
 mitm:
-  hostnames: {}
+  hostnames:
+    includes: []
+name: ''
+open_url: ''
+rules: []
