@@ -1,8 +1,8 @@
-name: Loon to Egern Converter
+name: Loon2Egern Converter
 on:
   push:
     paths:
-      - 'configs/input/*.plugin'
+      - 'Loon/Plugin/*.plugin'  # 监控Loon插件目录
   workflow_dispatch:
 
 jobs:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
+    
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -19,23 +19,25 @@ jobs:
     - name: Install dependencies
       run: pip install pyyaml jinja2
 
-    - name: Run conversion
+    - name: Convert files
       run: |
-        for file in configs/input/*.plugin; do
-          output_file="configs/output/$(basename $file .plugin).yaml"
-          python src/converter.py "$file" "$output_file"
+        # 创建输出目录
+        mkdir -p Egern/Module
+        
+        # 遍历所有Loon插件
+        for input_file in Loon/Plugin/*.plugin; do
+          # 生成输出路径（保留文件名，扩展名改为yaml）
+          filename=$(basename "$input_file" .plugin)
+          output_file="Egern/Module/${filename}.yaml"
+          
+          # 执行转换
+          python src/converter.py "$input_file" "$output_file"
         done
 
-    - name: Upload results
-      uses: actions/upload-artifact@v3
-      with:
-        name: egern-modules
-        path: configs/output/
-
-    - name: 提交更改
+    - name: Commit results
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
-        git add configs/output/
-        git commit -m "Auto-generated Egern configs"
+        git add Egern/Module/
+        git commit -m "Auto-generated Egern modules"
         git push
