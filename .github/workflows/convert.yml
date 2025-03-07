@@ -23,7 +23,7 @@ jobs:
         run: pip install pyyaml
 
       - name: 运行转换脚本
-        run: python convert_plugin_to_yaml.py
+        run: python Egern/Module/convert_plugin_to_yaml.py
 
       - name: 提交并推送到 Egern 仓库
         run: |
