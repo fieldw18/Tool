@@ -16,6 +16,11 @@ def parse_loon_file(file_path):
 
     # 初始化数据结构
     egern_data = {
+        'name': '',
+        'description': '',
+        'open_url': '',
+        'author': '',
+        'icon': '',
         'rules': [],
         'map_locals': [],
         'mitm': {'hostnames': {'includes': []}}
@@ -85,6 +90,16 @@ def parse_loon_file(file_path):
             if line.startswith('hostname ='):
                 hostnames = line.split('=', 1)[1].strip().replace('%APPEND% ', '').split(', ')
                 egern_data['mitm']['hostnames']['includes'] = hostnames
+
+    # 删除空的字段
+    if not egern_data['rules']:
+        del egern_data['rules']
+    if not egern_data['map_locals']:
+        del egern_data['map_locals']
+    if not egern_data['mitm']['hostnames']['includes']:
+        del egern_data['mitm']
+    elif not egern_data['mitm']['hostnames']['includes']:
+        del egern_data['mitm']['hostnames']['includes']
 
     return egern_data
 
