@@ -1,32 +1,159 @@
-name: Convert Loon Plugin to Egern Module
+name: Convert Loon to Egern
 
+# 触发条件：推送至 main 分支或手动触发
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   convert:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-      - name: Install dependencies
-        run: pip install pyyaml
-      - name: Run conversion script
-        run: python .github/scripts/convert.py
-      - name: Commit changes
+      # 检出代码
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 执行转换逻辑
+      - name: Convert Loon plugins to Egern modules
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add Egern/Module/*
-          git commit -m "Convert Loon plugin to Egern module" || echo "No changes to commit"
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: main
+          # 定义输入和输出目录
+          LOON_INPUT_DIR="Tool/Loon/Plugin"
+          EGERN_OUTPUT_DIR="Tool/Egern/Module"
+          
+          # 创建输出目录
+          mkdir -p "$EGERN_OUTPUT_DIR"
+          
+          # 获取当前日期
+          CURRENT_DATE=$(date '+%Y-%m-%d %H:%M:%S')
+          
+          # 遍历 Loon 文件
+          for file in "$LOON_INPUT_DIR"/*.loon; do
+            if [ -f "$file" ]; then
+              echo "正在处理: $file"
+              base_name=$(basename "$file" .loon)
+              output_file="$EGERN_OUTPUT_DIR/$base_name.yml"
+              
+              # 初始化输出文件
+              echo "# Converted from Loon to Egern by GitHub Actions" > "$output_file"
+              echo "# Date: $CURRENT_DATE" >> "$output_file"
+              
+              # 提取头部信息
+              name=$(grep '^#!name=' "$file" | sed 's/#!name=//')
+              desc=$(grep '^#!desc=' "$file" | sed 's/#!desc=//')
+              author=$(grep '^#!author=' "$file" | sed 's/#!author=//')
+              icon=$(grep '^#!icon=' "$file" | sed 's/#!icon=//')
+              open_url=$(grep '^#!openUrl=' "$file" | sed 's/#!openUrl=//')
+              
+              # 写入头部信息（只保留非空字段）
+              [ -n "$name" ] && echo "name: $name" >> "$output_file"
+              [ -n "$desc" ] && echo "description: $desc" >> "$output_file"
+              [ -n "$author" ] && echo "author: $author" >> "$output_file"
+              [ -n "$icon" ] && echo "icon: $icon" >> "$output_file"
+              [ -n "$open_url" ] && echo "open_url: $open_url" >> "$output_file"
+              echo "" >> "$output_file"
+              
+              # 处理 [Rule] 部分
+              if grep -q '^\[Rule\]' "$file"; then
+                echo "rules:" >> "$output_file"
+                sed -n '/^\[Rule\]/,/^\[/p' "$file" | grep -v '^\[' | grep -v '^$' | while IFS= read -r line; do
+                  if [[ "$line" =~ ^DOMAIN,([^,]+),([^,]+)$ ]]; then
+                    match="${BASH_REMATCH[1]}"
+                    policy="${BASH_REMATCH[2]}"
+                    echo "  - domain:" >> "$output_file"
+                    echo "      match: $match" >> "$output_file"
+                    echo "      policy: $policy" >> "$output_file"
+                  elif [[ "$line" =~ ^AND,\(\((IP-ASN,[0-9]+,no-resolve)\),\((DEST-PORT,[0-9]+)\),\((PROTOCOL,[A-Z]+)\)\),([^,]+)$ ]]; then
+                    asn="${BASH_REMATCH[1]#IP-ASN,}"
+                    port="${BASH_REMATCH[2]#DEST-PORT,}"
+                    protocol="${BASH_REMATCH[3]#PROTOCOL,}"
+                    policy="${BASH_REMATCH[4]}"
+                    echo "  - and:" >> "$output_file"
+                    echo "      match:" >> "$output_file"
+                    echo "        - asn:" >> "$output_file"
+                    echo "            match: '$asn'" >> "$output_file"
+                    echo "            no_resolve: true" >> "$output_file"
+                    echo "        - dest_port:" >> "$output_file"
+                    echo "            match: '$port'" >> "$output_file"
+                    echo "        - protocol:" >> "$output_file"
+                    echo "            match: $protocol" >> "$output_file"
+                    echo "      policy: $policy" >> "$output_file"
+                  fi
+                done
+              fi
+              
+              # 处理 [Map Local] 部分
+              if grep -q '^\[Map Local\]' "$file"; then
+                echo "map_locals:" >> "$output_file"
+                sed -n '/^\[Map Local\]/,/^\[/p' "$file" | grep -v '^\[' | grep -v '^$' | while IFS= read -r line; do
+                  if [[ "$line" =~ ^([^[:space:]]+)[[:space:]]+data-type=text[[:space:]]+data=\"([^\"]+)\"[[:space:]]+status-code=([0-9]+)$ ]]; then
+                    match="${BASH_REMATCH[1]}"
+                    body="${BASH_REMATCH[2]}"
+                    status="${BASH_REMATCH[3]}"
+                    echo "  - match: $match" >> "$output_file"
+                    echo "    status_code: $status" >> "$output_file"
+                    echo "    body: '$body'" >> "$output_file"
+                  fi
+                done
+              fi
+              
+              # 处理 [Script] 部分（http-response）
+              if grep -q '^http-response' "$file"; then
+                echo "scriptings:" >> "$output_file"
+                grep '^http-response' "$file" | while IFS= read -r line; do
+                  if [[ "$line" =~ ^http-response[[:space:]]+([^[:space:]]+)[[:space:]]+script-path[[:space:]]*=[[:space:]]*([^[:space:]]+),.*requires-body[[:space:]]*=[[:space:]]*(true|false),.*timeout[[:space:]]*=[[:space:]]*([0-9]+),.*tag[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+                    match="${BASH_REMATCH[1]}"
+                    script_url="${BASH_REMATCH[2]}"
+                    body_required="${BASH_REMATCH[3]}"
+                    timeout="${BASH_REMATCH[4]}"
+                    tag="${BASH_REMATCH[5]}"
+                    echo "  - http_response:" >> "$output_file"
+                    echo "      name: $tag" >> "$output_file"
+                    echo "      match: $match" >> "$output_file"
+                    echo "      script_url: $script_url" >> "$output_file"
+                    echo "      body_required: $body_required" >> "$output_file"
+                    echo "      timeout: $timeout" >> "$output_file"
+                  fi
+                done
+              fi
+              
+              # 处理 response-body-json-jq 部分
+              if grep -q 'response-body-json-jq' "$file"; then
+                echo "body_rewrites:" >> "$output_file"
+                grep '^[^#].*response-body-json-jq' "$file" | while IFS= read -r line; do
+                  if [[ "$line" =~ ^([^[:space:]]+)[[:space:]]+response-body-json-jq[[:space:]]+(.+)$ ]]; then
+                    match="${BASH_REMATCH[1]}"
+                    filter="${BASH_REMATCH[2]}"
+                    echo "  - response_jq:" >> "$output_file"
+                    echo "      match: $match" >> "$output_file"
+                    echo "      filter: $filter" >> "$output_file"
+                  fi
+                done
+              fi
+              
+              # 处理 [MITM] 部分
+              if grep -q '^\[MITM\]' "$file"; then
+                echo "mitm:" >> "$output_file"
+                echo "  hostnames:" >> "$output_file"
+                echo "    includes:" >> "$output_file"
+                sed -n '/^\[MITM\]/,/^\[/p' "$file" | grep '^hostname' | sed 's/hostname = %APPEND% //' | tr ',' '\n' | while IFS= read -r hostname; do
+                  hostname=$(echo "$hostname" | xargs)
+                  [ -n "$hostname" ] && echo "      - $hostname" >> "$output_file"
+                done
+              fi
+              
+              echo "转换完成: $output_file"
+            else
+              echo "$file 未找到，跳过。"
+            fi
+          done
+
+      # 提交转换后的文件到 GitHub
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add Tool-repo/Egern/Modules/*.yml
+          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-convert Loon to Egern modules"
+          git push
