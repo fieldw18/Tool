@@ -1,0 +1,5 @@
+# Tool/Loon/Plugin/test.plugin
+#!name=测试规则
+#!desc=示例插件
+
+RULE DOMAIN,example.com,DIRECT
