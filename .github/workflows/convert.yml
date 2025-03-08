@@ -150,10 +150,10 @@ jobs:
           done
 
       # 提交转换后的文件到 GitHub
-      - name: Commit and push changes
+      - name: Commit 和 push changes
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git add Tool/Egern/Modules/*.yml
+          git add Tool/Egern/Module/*.yml
           git diff --quiet && git diff --staged --quiet || git commit -m "Auto-convert Loon to Egern modules"
           git push
