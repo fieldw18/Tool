@@ -1,53 +1,37 @@
-name: Convert Loon to Egern
+name: Convert SOCKS5 Proxies
 
 on:
   push:
-    paths:
-      - 'Tool/Loon/Plugin/*.plugin'
-  workflow_dispatch:
+    branches:
+      - main  # 当推送到 main 分支时触发
+  workflow_dispatch:  # 支持手动触发
 
 jobs:
   convert:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          fetch-depth: 0
+          python-version: '3.x'
 
-      - name: Convert plugins
-        shell: bash
+      - name: Install dependencies
         run: |
-          set -euo pipefail
-          LOON_DIR="Tool/Loon/Plugin"
-          EGERN_DIR="Tool/Egern/Module"
-          
-          find "$LOON_DIR" -name '*.plugin' -print0 | while IFS= read -r -d $'\0' file; do
-            base=$(basename "$file" .plugin)
-            output="$EGERN_DIR/$base.yaml"
-            
-            awk '/^#!/{gsub(/^#!/,""); print}' "$file" | awk -F= '{
-              if(/name/) print "name:", $2
-              if(/desc/) print "description:", $2
-              if(/author/) print "author:", $2
-            }' > "$output"
-            
-            echo -e "\n# Converted at: $(date '+%Y-%m-%d %H:%M:%S')\n" >> "$output"
+          python -m pip install --upgrade pip
 
-            process_rule() {
-              sed -E "/^$1/!d; s/^$1\s*//; s/^/  - /"
-            }
-            
-            echo "rules:" >> "$output"
-            grep -E '^(http-response|RULE|MITM)' "$file" | process_rule ".*" >> "$output"
-          done
+      - name: Run conversion script
+        run: python convert.py
 
-      - name: Commit changes
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit converted file
         run: |
-          git config --global user.name "Auto Converter"
-          git config --global user.email "converter@noreply.github.com"
-          git add "Tool/Egern/Module"
-          git diff --cached --quiet || git commit -m "Auto-converted Loon plugins"
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'action@github.com'
+          git add converted_proxies.txt
+          git diff --quiet && git diff --staged --quiet || git commit -m 'Update converted_proxies.txt'
           git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
