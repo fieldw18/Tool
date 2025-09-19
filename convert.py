@@ -11,7 +11,7 @@ def convert_proxy_line(line):
         # 解析原始格式
         # 示例：socks5=47.83.244.195:10000, username=123, password=123, fast-open=false, udp-relay=false, tag=🇭🇰 香港
         parts = dict(item.strip().split('=', 1) for item in line.split(',') if '=' in item)
-        
+        
         # 提取必要字段
         socks5 = parts.get('socks5', '').strip()
         username = parts.get('username', '').strip()
@@ -21,7 +21,7 @@ def convert_proxy_line(line):
         if not socks5 or not username or not password:
             return None
 
-        # 处理 tag：将 "🇭🇰 香港" 转换为 "中国_香港"（示例中假设 🇭🇰 对应中国_香港）
+        # 处理 tag：将 "🇭🇰 香港" 转换为 "中国_香港"
         tag_map = {
             '🇭🇰 香港': '中国_香港',
             # 可扩展其他映射，例如：
@@ -39,7 +39,7 @@ def convert_proxy_line(line):
 def main():
     input_file = 'proxies.txt'
     output_file = 'converted_proxies.txt'
-    
+    
     try:
         with open(input_file, 'r', encoding='utf-8') as f:
             lines = f.readlines()
@@ -57,7 +57,7 @@ def main():
     with open(output_file, 'w', encoding='utf-8') as f:
         for line in converted_lines:
             f.write(line + '\n')
-    
+    
     print(f"转换完成，结果保存到 {output_file}")
     print(f"共处理 {len(lines)} 行，成功转换 {len(converted_lines)} 行")
 
