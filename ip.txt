@@ -1,0 +1,56 @@
+45.207.158.29:8443 | TW | N/A | 0ms
+45.207.158.29:2083 | TW | N/A | 0ms
+45.207.158.29:2053 | TW | N/A | 0ms
+60.249.114.181:11285 | TW | Taichung | 0ms
+60.249.114.181:32003 | TW | Taichung | 0ms
+188.253.117.154:443 | TW | N/A | 0ms
+114.34.202.224:10004 | TW | Linkou District | 0ms
+182.155.79.69:12369 | TW | Taichung | 1ms
+167.179.27.92:443 | TW | N/A | 2ms
+213.210.4.49:443 | TW | Taipei | 3ms
+
+38.207.174.62:443 | HK | N/A | 0ms
+103.247.28.240:37211 | HK | N/A | 0ms
+46.8.226.20:443 | HK | Hong Kong | 0ms
+2.56.91.89:8443 | HK | Hong Kong | 0ms
+43.132.244.52:21415 | HK | Hong Kong | 0ms
+194.34.254.212:443 | HK | Kowloon City | 1ms
+154.16.10.34:8080 | HK | Hong Kong | 1ms
+38.180.189.154:8443 | HK | Hong Kong | 1ms
+8.218.245.116:49701 | HK | Hong Kong | 1ms
+141.11.148.60:8080 | HK | Hong Kong | 2ms
+
+47.74.8.30:2443 | JP | Tokyo | 0ms
+141.147.178.249:37043 | JP | Inzai | 0ms
+140.83.37.134:46478 | JP | Inzai | 0ms
+132.145.127.203:8443 | JP | Inzai | 0ms
+140.83.60.81:18443 | JP | Osaka | 0ms
+45.77.25.6:27854 | JP | Heiwajima | 1ms
+141.147.183.49:29876 | JP | Inzai | 1ms
+47.79.43.222:443 | JP | Tokyo | 1ms
+8.209.220.50:21273 | JP | Tokyo | 1ms
+158.101.76.55:21953 | JP | Inzai | 1ms
+
+47.245.85.72:443 | SG | N/A | 0ms
+194.127.193.124:24467 | SG | Singapore | 0ms
+91.192.81.154:8443 | SG | Singapore | 0ms
+150.109.11.223:443 | SG | Singapore | 0ms
+103.229.96.157:443 | SG | N/A | 0ms
+213.35.100.31:47112 | SG | Kampong Loyang | 1ms
+8.222.159.134:12483 | SG | N/A | 1ms
+167.99.73.22:443 | SG | Singapore | 1ms
+143.198.196.196:2053 | SG | Singapore | 1ms
+47.237.149.38:8443 | SG | N/A | 1ms
+
+154.29.150.2:8080 | US | Los Angeles | 0ms
+23.152.200.8:8443 | US | N/A | 0ms
+74.48.140.177:443 | US | Los Angeles | 0ms
+54.153.59.106:80 | US | San Jose | 0ms
+216.128.140.253:26376 | US | Dallas | 1ms
+104.168.58.31:443 | US | Buffalo | 1ms
+216.45.62.16:443 | US | N/A | 1ms
+107.172.87.159:12354 | US | Santa Clara | 1ms
+107.182.27.151:443 | US | Los Angeles | 1ms
+172.82.16.38:27050 | US | Santa Clara | 1ms
+
+
